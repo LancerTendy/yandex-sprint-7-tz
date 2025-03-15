@@ -1,7 +1,7 @@
 package models;
 
 public class Subtask extends Task {
-    private final Integer relatedEpicId;
+    private Integer relatedEpicId; // Убрали final
 
     public Subtask(String name, String description, Integer relatedEpicId) {
         super(name, description);
@@ -10,6 +10,11 @@ public class Subtask extends Task {
 
     public Integer getEpicId() {
         return relatedEpicId;
+    }
+
+    // Добавили сеттер для relatedEpicId
+    public void setEpicId(Integer relatedEpicId) {
+        this.relatedEpicId = relatedEpicId;
     }
 
     @Override
@@ -24,11 +29,12 @@ public class Subtask extends Task {
 
     @Override
     public String toString() {
-        return "Subtask (" + "id = " + id +
-                "; name = " + name +
-                "; description = " + description +
-                "; status = " + taskStatus +
-                "; relatedEpicId = " + relatedEpicId +
+        return "Subtask (" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", status=" + taskStatus +
+                ", relatedEpicId=" + relatedEpicId +
                 ")\n";
     }
 }
