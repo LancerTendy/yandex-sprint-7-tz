@@ -7,16 +7,21 @@ public class Task {
     protected String name;
     protected String description;
     protected Status taskStatus;
+    protected Type type; // Добавили поле для типа задачи
 
     public Task(String name, String description) {
         this.name = name;
         this.description = description;
         this.taskStatus = Status.NEW;
+        this.type = Type.TASK; // По умолчанию тип задачи — TASK
     }
 
-
     public Type getType() {
-        return Type.TASK;
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
     }
 
     public Status getStatus() {
@@ -70,11 +75,12 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Task (" + "id = " + id +
-                "; name = " + name +
-                "; description = " + description +
-                "; status = " + taskStatus +
+        return "Task (" +
+                "id=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getTaskStatus() +
+                ", type=" + getType() +
                 ")\n";
     }
-
 }
