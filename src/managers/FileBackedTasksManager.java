@@ -23,10 +23,22 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
     }
 
     protected void save() {
+        // Создаем файл, если он не существует
+        if (!filename.exists()) {
+            try {
+                filename.createNewFile();
+            } catch (IOException e) {
+                throw new ManagerSaveException("Ошибка создания файла: " + filename.getPath(), e);
+            }
+        }
+
+        // Собираем все задачи в один список
         List<Task> allTasks = new ArrayList<>();
         allTasks.addAll(this.tasks.values());
         allTasks.addAll(this.epics.values());
         allTasks.addAll(this.subTasks.values());
+
+        // Записываем задачи в файл
         try (FileWriter writer = new FileWriter(filename, StandardCharsets.UTF_8)) {
             writer.write("id,type,name,status,description,epic\n");
             for (Task entry : allTasks) {
@@ -37,7 +49,7 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
                 }
             }
         } catch (IOException exception) {
-            throw new ManagerSaveException("Ошибка записи задач в файл");
+            throw new ManagerSaveException("Ошибка записи задач в файл: " + filename.getPath(), exception);
         }
     }
 
@@ -52,8 +64,13 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
     }
 
     private Task fromString(String value) {
-        Task task = null;
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+
         String[] values = value.split(",");
+        Task task = null;
+
         if (values[1].equals(Type.TASK.toString())) {
             task = new Task(values[2], values[4]);
             task.setTaskStatus(Status.valueOf(values[3]));
@@ -67,37 +84,50 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
             task.setTaskStatus(Status.valueOf(values[3]));
             task.setId(Integer.parseInt(values[0]));
         }
+
         return task;
     }
 
     public static FileBackedTasksManager loadFromFile(File file) {
-        //Убрала throws IOException
         FileBackedTasksManager manager = new FileBackedTasksManager(file);
+
         try {
             String data = Files.readString(file.toPath());
-            if (data == null) {
-                throw new IOException("Данных  нет");
+            if (data == null || data.isEmpty()) {
+                throw new IOException("Файл пуст или отсутствует");
             }
+
             String[] lines = data.split("\\n");
             if (lines.length <= 1) {
-                throw new IOException("Данных  нет");
+                throw new IOException("Файл не содержит данных");
             }
+
             for (int i = 1; i < lines.length; i++) {
                 Task task = manager.fromString(lines[i]);
-                if (task.getId() > manager.id) manager.id = task.getId();
-                if (task.getType().equals(Type.TASK)) {
-                    manager.tasks.put(task.getId(), task);
-                } else if (task.getType().equals(Type.EPIC)) {
-                    manager.epics.put(task.getId(), (Epic) task);
-                } else if (task.getType().equals(Type.SUBTASK)) {
-                    manager.subTasks.put(task.getId(), (Subtask) task);
-                    manager.epics.get(((Subtask) task).getEpicId()).addSubtaskId(task.getId());
+                if (task == null) {
+                    continue;
                 }
 
+                if (task.getId() > manager.id) {
+                    manager.id = task.getId();
+                }
+
+                switch (task.getType()) {
+                    case TASK:
+                        manager.tasks.put(task.getId(), task);
+                        break;
+                    case EPIC:
+                        manager.epics.put(task.getId(), (Epic) task);
+                        break;
+                    case SUBTASK:
+                        manager.subTasks.put(task.getId(), (Subtask) task);
+                        manager.epics.get(((Subtask) task).getEpicId()).addSubtaskId(task.getId());
+                        break;
+                }
             }
         } catch (IOException exception) {
             exception.printStackTrace();
-            throw new ManagerSaveException("Ошибка чтения файла! Проверьте его наличие по указанному пути!");
+            throw new ManagerSaveException("Ошибка чтения файла: " + file.getPath(), exception);
         }
 
         return manager;
@@ -123,23 +153,17 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
 
     @Override
     public Task getTask(Integer id) {
-        Task t = super.getTask(id);
-        save();
-        return t;
+        return super.getTask(id);
     }
 
     @Override
     public Subtask getSubtask(Integer id) {
-        Subtask t = super.getSubtask(id);
-        save();
-        return t;
+        return super.getSubtask(id);
     }
 
     @Override
     public Epic getEpic(Integer id) {
-        Epic t = super.getEpic(id);
-        save();
-        return t;
+        return super.getEpic(id);
     }
 
     @Override
@@ -174,7 +198,6 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         return id;
     }
 
-
     @Override
     public int createEpic(Epic e) {
         int id = super.createEpic(e);
@@ -199,5 +222,4 @@ public class FileBackedTasksManager extends InMemoryTaskManager {
         super.updateSubtask(subtask);
         save();
     }
-
 }
