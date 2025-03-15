@@ -19,30 +19,38 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     private void linkLast(Task task) {
         Node node = new Node(task);
-        if (tail != null && head != null) {
-            tail.next = node;
-            node.prev = tail;
+        if (tail != null) {
+            tail.setNext(node);
+            node.setPrev(tail);
         } else {
             head = node;
         }
         tail = node;
-        linkedTasks.put(node.task.getId(), node);
+        linkedTasks.put(task.getId(), node);
     }
 
     private void removeNode(int id) {
         Node node = linkedTasks.get(id);
         if (node == null) return;
+
         if (node == tail && node == head) {
             tail = null;
             head = null;
         } else if (node == head) {
-            head = head.next;
+            head = head.getNext();
+            if (head != null) {
+                head.setPrev(null);
+            }
         } else if (node == tail) {
-            tail = tail.prev;
+            tail = tail.getPrev();
+            if (tail != null) {
+                tail.setNext(null);
+            }
         } else {
-            node.prev.next = node.next;
-            node.next.prev = node.prev;
+            node.getPrev().setNext(node.getNext());
+            node.getNext().setPrev(node.getPrev());
         }
+
         linkedTasks.remove(id);
     }
 
@@ -50,8 +58,8 @@ public class InMemoryHistoryManager implements HistoryManager {
         ArrayList<Task> allTasks = new ArrayList<>();
         Node node = head;
         while (node != null) {
-            allTasks.add(node.task);
-            node = node.next;
+            allTasks.add(node.getTask());
+            node = node.getNext();
         }
         return allTasks;
     }
@@ -65,31 +73,9 @@ public class InMemoryHistoryManager implements HistoryManager {
     public void add(Task task) {
         if (task != null) {
             if (linkedTasks.containsKey(task.getId())) {
-                linkedTasks.remove(task.getId());
                 removeNode(task.getId());
             }
             linkLast(task);
         }
     }
-
-
-    public static class Node {
-        Node next;
-        Node prev;
-        Task task;
-
-        public Node(Task task) {
-            this.next = null;
-            this.prev = null;
-            this.task = task;
-        }
-
-        @Override
-        public String toString() {
-            return "Node{" +
-                    "task=" + task +
-                    '}';
-        }
-    }
 }
-
